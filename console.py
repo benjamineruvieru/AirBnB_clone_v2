@@ -10,6 +10,8 @@ from models.state import State
 from models.city import City
 from models.amenity import Amenity
 from models.review import Review
+import re
+from shlex import split
 
 
 class HBNBCommand(cmd.Cmd):
@@ -112,27 +114,44 @@ class HBNBCommand(cmd.Cmd):
         """ Overrides the emptyline method of CMD """
         pass
 
-    def do_create(self, args):
-        """ Create an object of any class"""
-        try:
-            if not args:
-                raise SyntaxError()
-            arg_list = args.split(" ")
-            kw = {}
-            for arg in arg_list[1:]:
-                arg_splited = arg.split("=")
-                arg_splited[1] = eval(arg_splited[1])
-                if type(arg_splited[1]) is str:
-                    arg_splited[1] = arg_splited[1].replace(
-                        "_", " ").replace('"', '\\"')
-                kw[arg_splited[0]] = arg_splited[1]
-        except SyntaxError:
+    def do_create(self, line):
+        """Creates a new instance of BaseModel, saves it
+        Exceptions:
+            SyntaxError: when there is no args given
+            NameError: when there is no object taht has the name
+        """
+        if line == "" or line is None:
             print("** class name missing **")
-        except NameError:
-            print("** class doesn't exist **")
-        new_instance = HBNBCommand.classes[arg_list[0]](**kw)
-        new_instance.save()
-        print(new_instance.id)
+        else:
+            my_list = line.split(" ")
+            classname = my_list[0]
+            if classname not in storage.classes():
+                print("** class doesn't exist **")
+                return
+            obj = eval("{}()".format(classname))
+            for i in range(1, len(my_list)):
+                rex = r'^(\S+)\=(\S+)'
+                match = re.search(rex, my_list[i])
+                if not match:
+                    continue
+                key = match.group(1)
+                value = match.group(2)
+                cast = None
+                if not re.search('^".*"$', value):
+                    if '.' in value:
+                        cast = float
+                    else:
+                        cast = int
+                else:
+                    value = value.replace('"', '')
+                    value = value.replace('_', ' ')
+                if cast:
+                    try:
+                        value = cast(value)
+                    except ValueError:
+                        pass
+                setattr(obj, key, value)
+            obj.save()
 
     def help_create(self):
         """ Help information for the create method """
