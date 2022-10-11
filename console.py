@@ -10,7 +10,6 @@ from models.state import State
 from models.city import City
 from models.amenity import Amenity
 from models.review import Review
-import shlex
 
 
 class HBNBCommand(cmd.Cmd):
@@ -38,7 +37,6 @@ class HBNBCommand(cmd.Cmd):
 
     def precmd(self, line):
         """Reformat command line for advanced command syntax.
-
         Usage: <class name>.<command>([<id> [<*args> or <**kwargs>]])
         (Brackets denote optional fields in usage example.)
         """
@@ -114,56 +112,17 @@ class HBNBCommand(cmd.Cmd):
         """ Overrides the emptyline method of CMD """
         pass
 
-    def _key_value_parser(self, args):
-        """creates a dictionary from a list of strings"""
-        new_dict = {}
-        for arg in args:
-            if "=" in arg:
-                kvp = arg.split('=', 1)
-                key = kvp[0]
-                value = kvp[1]
-                if value[0] == value[-1] == '"':
-                    value = shlex.split(value)[0].replace('_', ' ')
-                else:
-                    try:
-                        value = int(value)
-                    except:
-                        try:
-                            value = float(value)
-                        except:
-                            continue
-                new_dict[key] = value
-        return new_dict
-
     def do_create(self, args):
         """ Create an object of any class"""
-
         if not args:
             print("** class name missing **")
             return
         elif args not in HBNBCommand.classes:
             print("** class doesn't exist **")
             return
-        my_list = args.split(" ")
-
-        kwargs = {}
-        for i in range(1, len(my_list)):
-            key, value = tuple(my_list[i].split("="))
-            if value[0] == '"':
-                value = value.strip('"').replace("_", " ")
-            else:
-                try:
-                    value = eval(value)
-                except (SyntaxError, NameError):
-                    continue
-            kwargs[key] = value
-        if kwargs == {}:
-            new_instance = HBNBCommand.classes[args]()
-            print(new_instance.id)
-        else:
-            obj = eval(my_list[0])(**kwargs)
-            print(obj.id)
-            storage.new(obj)
+        new_instance = HBNBCommand.classes[args]()
+        storage.save()
+        print(new_instance.id)
         storage.save()
 
     def help_create(self):
